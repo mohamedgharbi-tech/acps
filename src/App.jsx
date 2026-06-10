@@ -16,6 +16,8 @@ import AdminDashboard from './components/AdminDashboard';
  * 1. Selected language (English / Arabic) with RTL layout synchronization.
  * 2. Active trip selected for excursion registration.
  * 3. Administrative Control Dashboard visibility.
+ * 
+ * Commentaire ajouté pour vérifier le déploiement automatique sur Vercel via GitHub (CI/CD).
  */
 export default function App() {
   const [lang, setLang] = useState('ar'); // Defaulting to Arabic
