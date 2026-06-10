@@ -1,26 +1,22 @@
-/**
- * APCS Association Website - Database Integration Layer (Phase 2)
- * 
- * LOCAL TESTING MODE (localStorage):
- * Simulates real Supabase queries for Trips, Registrations, and News.
- * Fully prepared for drop-in Supabase client config in production.
- */
+import { createClient } from '@supabase/supabase-js';
 
-// --- REAL SUPABASE CLIENT CONFIG (UNCOMMENT FOR PRODUCTION) ---
-/*
-import { createClient } from '@supabase/supabase-js'
+// --- SUPABASE CLIENT CONFIG ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Check if credentials are provided. If yes, enable real database connection.
+export const isRealSupabase = !!(supabaseUrl && supabaseAnonKey);
+export const supabase = isRealSupabase ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-*/
+if (isRealSupabase) {
+  console.log("🔌 Connected to real Supabase database.");
+} else {
+  console.log("💾 Running in Local Testing Mode (localStorage fallback).");
+}
 
 // --- LOCAL MOCK DATABASE SYSTEM WITH TUNISIAN SEEDING ---
-
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Default seeds if database is empty
 const seedTrips = [
   {
     id: 'trip_1',
@@ -47,7 +43,7 @@ const seedTrips = [
     titleEn: 'APCS Inter-Center Football Cup',
     titleAr: 'دورة كأس جمعية البريد لكرة القدم المصغرة',
     category: 'sports',
-    imageKey: 'football_team', // Using the real team photo!
+    imageKey: 'football_team',
     difficulty: 'moderate',
     dateEn: 'Sat, July 04, 2026',
     dateAr: 'السبت، 04 جويلية 2026',
@@ -87,7 +83,7 @@ const seedTrips = [
     titleEn: 'Ichkeul National Park Family Outing',
     titleAr: 'رحلة عائلية استكشافية لمحمية إشكل',
     category: 'family',
-    imageKey: 'group_hike', // Using the group photo!
+    imageKey: 'group_hike',
     difficulty: 'easy',
     dateEn: 'Fri, Aug 14, 2026',
     dateAr: 'الجمعة، 14 أوت 2026',
@@ -154,177 +150,295 @@ if (!localStorage.getItem('apcs_registrations')) {
 }
 if (!localStorage.getItem('apcs_members')) {
   localStorage.setItem('apcs_members', JSON.stringify(seedMembers));
-} else {
-  // If apcs_members exists, verify it contains the photo attribute. If not, reseed to ensure correct structure.
-  try {
-    const existing = JSON.parse(localStorage.getItem('apcs_members'));
-    if (existing.length > 0 && existing[0].photo === undefined) {
-      localStorage.setItem('apcs_members', JSON.stringify(seedMembers));
-    }
-  } catch (e) {
-    localStorage.setItem('apcs_members', JSON.stringify(seedMembers));
-  }
 }
 
 export const db = {
   // --- TRIPS API ---
   async getTrips() {
-    await delay(300);
-    try {
-      const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
-      return { data: trips, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+    if (isRealSupabase) {
+      const { data, error } = await supabase
+        .from('apcs_trips')
+        .select('*');
+      return { data, error };
+    } else {
+      await delay(300);
+      try {
+        const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
+        return { data: trips, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async createTrip(tripData) {
-    await delay(800);
-    try {
-      const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
-      const newTrip = {
-        id: 'trip_' + Date.now().toString(36),
+    if (isRealSupabase) {
+      const payload = {
         ...tripData,
         priceValue: parseFloat(tripData.priceEn) || 0
       };
-      trips.push(newTrip);
-      localStorage.setItem('apcs_trips', JSON.stringify(trips));
-      return { data: newTrip, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+      const { data, error } = await supabase
+        .from('apcs_trips')
+        .insert([payload])
+        .select()
+        .single();
+      return { data, error };
+    } else {
+      await delay(800);
+      try {
+        const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
+        const newTrip = {
+          id: 'trip_' + Date.now().toString(36),
+          ...tripData,
+          priceValue: parseFloat(tripData.priceEn) || 0
+        };
+        trips.push(newTrip);
+        localStorage.setItem('apcs_trips', JSON.stringify(trips));
+        return { data: newTrip, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async deleteTrip(tripId) {
-    await delay(400);
-    try {
-      let trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
-      trips = trips.filter(t => t.id !== tripId);
-      localStorage.setItem('apcs_trips', JSON.stringify(trips));
-      return { data: true, error: null };
-    } catch (err) {
-      return { data: false, error: err };
+    if (isRealSupabase) {
+      const { error } = await supabase
+        .from('apcs_trips')
+        .delete()
+        .eq('id', tripId);
+      return { data: !error, error };
+    } else {
+      await delay(400);
+      try {
+        let trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
+        trips = trips.filter(t => t.id !== tripId);
+        localStorage.setItem('apcs_trips', JSON.stringify(trips));
+        return { data: true, error: null };
+      } catch (err) {
+        return { data: false, error: err };
+      }
     }
   },
 
   // --- NEWS / ACTUALITY API ---
   async getNews() {
-    await delay(300);
-    try {
-      const news = JSON.parse(localStorage.getItem('apcs_news') || '[]');
-      // Sort news by date descending
-      news.sort((a, b) => new Date(b.date) - new Date(a.date));
-      return { data: news, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+    if (isRealSupabase) {
+      const { data, error } = await supabase
+        .from('apcs_news')
+        .select('*')
+        .order('date', { ascending: false });
+      return { data, error };
+    } else {
+      await delay(300);
+      try {
+        const news = JSON.parse(localStorage.getItem('apcs_news') || '[]');
+        news.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return { data: news, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async createNews(newsData) {
-    await delay(700);
-    try {
-      const news = JSON.parse(localStorage.getItem('apcs_news') || '[]');
-      const newActuality = {
-        id: 'news_' + Date.now().toString(36),
-        date: new Date().toISOString().split('T')[0],
-        ...newsData
+    if (isRealSupabase) {
+      const payload = {
+        ...newsData,
+        date: new Date().toISOString().split('T')[0]
       };
-      news.push(newActuality);
-      localStorage.setItem('apcs_news', JSON.stringify(news));
-      return { data: newActuality, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+      const { data, error } = await supabase
+        .from('apcs_news')
+        .insert([payload])
+        .select()
+        .single();
+      return { data, error };
+    } else {
+      await delay(700);
+      try {
+        const news = JSON.parse(localStorage.getItem('apcs_news') || '[]');
+        const newActuality = {
+          id: 'news_' + Date.now().toString(36),
+          date: new Date().toISOString().split('T')[0],
+          ...newsData
+        };
+        news.push(newActuality);
+        localStorage.setItem('apcs_news', JSON.stringify(news));
+        return { data: newActuality, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   // --- REGISTRATIONS API ---
   async getRegistrations() {
-    await delay(400);
-    try {
-      const regs = JSON.parse(localStorage.getItem('apcs_registrations') || '[]');
-      return { data: regs, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+    if (isRealSupabase) {
+      const { data, error } = await supabase
+        .from('apcs_registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      return { data, error };
+    } else {
+      await delay(400);
+      try {
+        const regs = JSON.parse(localStorage.getItem('apcs_registrations') || '[]');
+        return { data: regs, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async registerForTrip(registrationData) {
-    await delay(800);
-    try {
-      const regs = JSON.parse(localStorage.getItem('apcs_registrations') || '[]');
-      const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
-      
-      const trip = trips.find(t => t.id === registrationData.tripId);
-      if (!trip) throw new Error("Trip not found");
+    if (isRealSupabase) {
+      try {
+        // Fetch trip details to get max capacity
+        const { data: trip, error: tripErr } = await supabase
+          .from('apcs_trips')
+          .select('*')
+          .eq('id', registrationData.tripId)
+          .single();
+        
+        if (tripErr || !trip) throw new Error("Trip not found");
 
-      // Calculate current bookings for this trip
-      const ticketsCount = parseInt(registrationData.tickets, 10) || 1;
-      const bookedTickets = regs
-        .filter(r => r.tripId === registrationData.tripId)
-        .reduce((sum, r) => sum + r.tickets, 0);
+        // Fetch current bookings count
+        const { data: regs, error: regsErr } = await supabase
+          .from('apcs_registrations')
+          .select('tickets')
+          .eq('tripId', registrationData.tripId);
 
-      // Verify capacity limits
-      if (bookedTickets + ticketsCount > trip.maxCapacity) {
-        return { data: null, error: { message: "limit_reached" } };
+        if (regsErr) throw regsErr;
+
+        const ticketsCount = parseInt(registrationData.tickets, 10) || 1;
+        const bookedTickets = regs.reduce((sum, r) => sum + r.tickets, 0);
+
+        if (bookedTickets + ticketsCount > trip.maxCapacity) {
+          return { data: null, error: { message: "limit_reached" } };
+        }
+
+        // Insert new booking
+        const newReg = {
+          fullName: registrationData.fullName,
+          email: registrationData.email,
+          phone: registrationData.phone,
+          tickets: ticketsCount,
+          tripId: registrationData.tripId,
+          tripTitle: trip.titleEn,
+          tripTitleAr: trip.titleAr,
+          notes: registrationData.notes || ''
+        };
+
+        const { data, error } = await supabase
+          .from('apcs_registrations')
+          .insert([newReg])
+          .select()
+          .single();
+
+        return { data, error };
+      } catch (err) {
+        return { data: null, error: err };
       }
+    } else {
+      await delay(800);
+      try {
+        const regs = JSON.parse(localStorage.getItem('apcs_registrations') || '[]');
+        const trips = JSON.parse(localStorage.getItem('apcs_trips') || '[]');
+        
+        const trip = trips.find(t => t.id === registrationData.tripId);
+        if (!trip) throw new Error("Trip not found");
 
-      const newReg = {
-        id: 'reg_' + Math.random().toString(36).substr(2, 9),
-        created_at: new Date().toISOString(),
-        fullName: registrationData.fullName,
-        email: registrationData.email,
-        phone: registrationData.phone,
-        tickets: ticketsCount,
-        tripId: registrationData.tripId,
-        tripTitle: trip.titleEn,
-        tripTitleAr: trip.titleAr,
-        notes: registrationData.notes || ''
-      };
+        const ticketsCount = parseInt(registrationData.tickets, 10) || 1;
+        const bookedTickets = regs
+          .filter(r => r.tripId === registrationData.tripId)
+          .reduce((sum, r) => sum + r.tickets, 0);
 
-      regs.push(newReg);
-      localStorage.setItem('apcs_registrations', JSON.stringify(regs));
-      return { data: newReg, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+        if (bookedTickets + ticketsCount > trip.maxCapacity) {
+          return { data: null, error: { message: "limit_reached" } };
+        }
+
+        const newReg = {
+          id: 'reg_' + Math.random().toString(36).substr(2, 9),
+          created_at: new Date().toISOString(),
+          fullName: registrationData.fullName,
+          email: registrationData.email,
+          phone: registrationData.phone,
+          tickets: ticketsCount,
+          tripId: registrationData.tripId,
+          tripTitle: trip.titleEn,
+          tripTitleAr: trip.titleAr,
+          notes: registrationData.notes || ''
+        };
+
+        regs.push(newReg);
+        localStorage.setItem('apcs_registrations', JSON.stringify(regs));
+        return { data: newReg, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   // --- MEMBERS API ---
   async getMembers() {
-    await delay(300);
-    try {
-      const members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
-      return { data: members, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+    if (isRealSupabase) {
+      const { data, error } = await supabase
+        .from('apcs_members')
+        .select('*');
+      return { data, error };
+    } else {
+      await delay(300);
+      try {
+        const members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
+        return { data: members, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async createMember(memberData) {
-    await delay(500);
-    try {
-      const members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
-      const newMember = {
-        id: 'member_' + Date.now().toString(36),
-        ...memberData
-      };
-      members.push(newMember);
-      localStorage.setItem('apcs_members', JSON.stringify(members));
-      return { data: newMember, error: null };
-    } catch (err) {
-      return { data: null, error: err };
+    if (isRealSupabase) {
+      const { data, error } = await supabase
+        .from('apcs_members')
+        .insert([memberData])
+        .select()
+        .single();
+      return { data, error };
+    } else {
+      await delay(500);
+      try {
+        const members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
+        const newMember = {
+          id: 'member_' + Date.now().toString(36),
+          ...memberData
+        };
+        members.push(newMember);
+        localStorage.setItem('apcs_members', JSON.stringify(members));
+        return { data: newMember, error: null };
+      } catch (err) {
+        return { data: null, error: err };
+      }
     }
   },
 
   async deleteMember(memberId) {
-    await delay(400);
-    try {
-      let members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
-      members = members.filter(m => m.id !== memberId);
-      localStorage.setItem('apcs_members', JSON.stringify(members));
-      return { data: true, error: null };
-    } catch (err) {
-      return { data: false, error: err };
+    if (isRealSupabase) {
+      const { error } = await supabase
+        .from('apcs_members')
+        .delete()
+        .eq('id', memberId);
+      return { data: !error, error };
+    } else {
+      await delay(400);
+      try {
+        let members = JSON.parse(localStorage.getItem('apcs_members') || '[]');
+        members = members.filter(m => m.id !== memberId);
+        localStorage.setItem('apcs_members', JSON.stringify(members));
+        return { data: true, error: null };
+      } catch (err) {
+        return { data: false, error: err };
+      }
     }
   }
 };
