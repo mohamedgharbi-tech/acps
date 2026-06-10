@@ -1,12 +1,12 @@
 import React from 'react';
-import AnimatedTree from './AnimatedTree';
+import tunisiaNatureHero from '../assets/tunisia_nature_hero.png';
 import { translations } from '../services/translations';
 import { Compass, Calendar, ArrowRight } from 'lucide-react';
 
 /**
  * Hero component for the APCS landing page.
- * Uses a grid layout to present a captivating message about sports and excursions on the left,
- * and the CSS-animated SVG tree on the right.
+ * Presents a captivating message about sports and excursions on the left,
+ * and a premium, natural landscape visual with leaf micro-animations on the right.
  */
 export default function Hero({ lang }) {
   const t = translations[lang];
@@ -58,9 +58,20 @@ export default function Hero({ lang }) {
             </div>
           </div>
 
-          {/* Right Column: SVG Tree Canvas & Floating Info Badge */}
+          {/* Right Column: Natural Visual Canvas & Floating Info Badge */}
           <div className="hero-visual">
-            <AnimatedTree />
+            <div className="hero-image-wrapper">
+              <img 
+                src={tunisiaNatureHero} 
+                alt="Ain Draham Forest Tunisia" 
+                className="hero-nature-image" 
+              />
+              
+              {/* Subtle natural animations */}
+              <span className="floating-leaf leaf-1">🍃</span>
+              <span className="floating-leaf leaf-2">🌿</span>
+              <span className="floating-leaf leaf-3">🍀</span>
+            </div>
             
             {/* Floating Upcoming Outing Badge */}
             <div className="tree-badge">
