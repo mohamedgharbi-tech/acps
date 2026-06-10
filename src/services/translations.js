@@ -20,7 +20,7 @@ export const translations = {
     heroBtnBook: "Book an Outing",
     heroBtnActivities: "Our Activities",
     heroStatTrips: "Annual Trips",
-    heroStatParticipants: "Hikers & Athletes",
+    heroStatParticipants: "Members & Players",
     heroStatCups: "Soccer Cups",
     heroNextOuting: "Next Outing",
     heroNextDetails: "Ain Draham Forest Hike • Sat, June 20",

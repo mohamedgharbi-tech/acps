@@ -44,15 +44,11 @@ export default function Hero({ lang }) {
             {/* Quick Stats Banner */}
             <div className="hero-stats">
               <div className="stat-item">
-                <span className="stat-num">{lang === 'ar' ? '٣٠+' : '30+'}</span>
-                <span className="stat-lbl">{t.heroStatTrips}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-num">{lang === 'ar' ? '١.٥ألف+' : '1.5k+'}</span>
+                <span className="stat-num">+100</span>
                 <span className="stat-lbl">{t.heroStatParticipants}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-num">{lang === 'ar' ? '١٢+' : '12+'}</span>
+                <span className="stat-num">+12</span>
                 <span className="stat-lbl">{t.heroStatCups}</span>
               </div>
             </div>
